@@ -105,6 +105,22 @@ module Match
         end
       end
 
+      command :encrypt do |c|
+        c.syntax = "fastlane match encrypt"
+        c.description = "Encrypt the repository and push it"
+
+        FastlaneCore::CommanderGenerator.new.generate(Match::Options.available_options, command: c)
+
+        c.action do |args, options|
+          params = FastlaneCore::Configuration.create(Match::Options.available_options, options.__hash__)
+          params.load_configuration_file("Matchfile")
+          
+          message = Match::GitHelper.generate_commit_message(params)
+          Match::GitHelper.commit_changes(params[:encrypt_repo], message, params[:git_url], params[:git_branch], nil)
+          UI.success "Repo at: '#{params[:encrypt_repo]}' pushed to #{params[:git_url]}"
+        end
+      end
+
       command "nuke" do |c|
         # We have this empty command here, since otherwise the normal `match` command will be executed
         c.syntax = "fastlane match nuke"
@@ -126,6 +142,19 @@ module Match
             params.load_configuration_file("Matchfile")
             Match::Nuke.new.run(params, type: type.to_s)
           end
+        end
+      end
+
+      command :import do |c|
+        c.syntax = "fastlane match import"
+        c.description = "Import a P12 certificate to match's repository and fetch profiles"
+
+        FastlaneCore::CommanderGenerator.new.generate(Match::Options.available_options, command: c)
+
+        c.action do |args, options|
+          params = FastlaneCore::Configuration.create(Match::Options.available_options, options.__hash__)
+          params.load_configuration_file("Matchfile") # this has to be done *before* overwriting the value
+          Match::Runner.new.import_certificate_and_profiles(params)
         end
       end
 
