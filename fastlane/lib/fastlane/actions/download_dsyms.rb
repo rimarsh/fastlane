@@ -57,7 +57,7 @@ module Fastlane
             end
 
             begin
-              download_url = build.dsym_url
+              download_url = Spaceship::TestFlight::Build.find(app_id: build.app_id, build_id: build.id).dsym_url
             rescue Spaceship::TunesClient::ITunesConnectError => ex
               UI.error("Error accessing dSYM file for build\n\n#{build}\n\nException: #{ex}")
             end
