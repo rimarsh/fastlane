@@ -24,6 +24,7 @@ module Gym
         move_app_thinning
         move_app_thinning_size_report
         move_apps_folder
+        copy_files_from_path(File.join(PackageCommandGenerator.generator.temporary_output_path, "*"))
       elsif Gym.project.mac?
         path = File.expand_path(Gym.config[:output_directory])
         compress_and_move_dsym
