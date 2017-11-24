@@ -75,7 +75,7 @@ module Match
 
     def import_certificate_and_profiles(params)
       UI.user_error!("It's not allowed to import your certificate because you enabled `readonly` option.") if params[:readonly]
-      UI.warning("Enterprise profiles are currently not officially supported in _match_, you might run into issues") if params[:type] == "enterprise"
+      UI.error("Enterprise profiles are currently not officially supported in _match_, you might run into issues") if params[:type] == "enterprise"
 
       params[:import_certificate] = args[0] if params[:import_certificate].nil?
       UI.user_error!("Missing path to the certificate to import") if params[:import_certificate].nil?
@@ -118,11 +118,15 @@ module Match
         app_identifiers = params[:app_identifier].to_s.split(/\s*,\s*/).uniq
       end
 
+      UI.message "Downloading provisioning profiles..."
       all_profiles = Spaceship.provisioning_profile.all()
       matched_valid_profiles = all_profiles.find_all do |profile|
-        app_identifiers.has? profile.app.bundle_id && profile.status 'Active'
+        (app_identifiers.include? profile.app.bundle_id) && profile.status == "Active"
       end
 
+      UI.user_error!("Did not find any profiles for '#{app_identifiers}'") if matched_valid_profiles.empty?
+
+      UI.message "Importing provisioning profiles..."
       matched_valid_profiles.each do |profile|
         prov_type = Match.profile_type_sym(params[:type])
 
@@ -130,12 +134,13 @@ module Match
         if params[:platform].to_s != :ios.to_s
           names.push(params[:platform])
         end
+
         profile_name = names.join("_").gsub("*", '\*') # this is important, as it shouldn't be a wildcard
         base_dir = File.join(params[:workspace], "profiles", prov_type.to_s)
+        FileUtils.mkdir_p(base_dir)
+
         profile_path = File.join(base_dir, "#{profile_name}.mobileprovision")
-        
         File.write(profile_path, profile.download)
-        self.files_to_commmit << profile_path
       end
 
       # Done
